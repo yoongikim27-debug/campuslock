@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusLock - Автоматические камеры хранения</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        /* ВСЕ ВАШИ СТИЛИ ОСТАЮТСЯ ТЕМИ ЖЕ — я их не трогаю */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f8f9fa; color: #333; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        header { background-color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: fixed; width: 100%; top: 0; z-index: 1000; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; flex-wrap: wrap; }
+        .logo { font-size: 28px; font-weight: 700; color: #2c3e50; display: flex; align-items: center; gap: 10px; }
+        .logo img { height: 40px; }
+        .logo span { color: #3498db; }
+        nav ul { display: flex; list-style: none; gap: 30px; align-items: center; flex-wrap: wrap; }
+        nav ul li a { text-decoration: none; color: #2c3e50; font-weight: 500; transition: color 0.3s; }
+        nav ul li a:hover { color: #3498db; }
+        .login-btn { background-color: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: 500; cursor: pointer; }
+        .user-menu { display: flex; align-items: center; gap: 15px; position: relative; }
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; background-color: #3498db; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
+        .dropdown-menu { position: absolute; top: 100%; right: 0; background-color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-radius: 5px; padding: 10px 0; min-width: 180px; display: none; z-index: 1001; }
+        .dropdown-menu.active { display: block; }
+        .dropdown-menu a { display: block; padding: 10px 20px; text-decoration: none; color: #2c3e50; }
+        .hero { background: linear-gradient(rgba(52,152,219,0.7), rgba(44,62,80,0.7)), url('main.jpg'); background-size: cover; background-position: center; color: white; padding: 150px 0 100px; margin-top: 70px; min-height: 80vh; display: flex; align-items: center; }
+        .hero-text h1 { font-size: 42px; margin-bottom: 20px; }
+        .hero-text p { font-size: 18px; margin-bottom: 30px; }
+        .book-btn { background-color: #e74c3c; color: white; border: none; padding: 15px 30px; border-radius: 5px; font-size: 18px; font-weight: 600; cursor: pointer; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
+        .modal-content { background-color: white; padding: 40px; border-radius: 10px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; position: relative; }
+        .close-modal { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; color: #7f8c8d; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #2c3e50; font-weight: 500; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+        .submit-btn { background-color: #3498db; color: white; border: none; padding: 12px 30px; border-radius: 5px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; }
+        .price-preview { background-color: #e8f4fd; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center; font-size: 18px; font-weight: bold; }
+        .form-tabs { display: flex; margin-bottom: 20px; border-bottom: 1px solid #ddd; }
+        .form-tab { padding: 10px 20px; cursor: pointer; border-bottom: 2px solid transparent; }
+        .form-tab.active { border-bottom: 2px solid #3498db; color: #3498db; font-weight: 500; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .features { padding: 100px 0; background-color: white; }
+        .section-title { text-align: center; margin-bottom: 60px; }
+        .section-title h2 { font-size: 36px; color: #2c3e50; margin-bottom: 15px; }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+        .feature-card { background-color: #f8f9fa; border-radius: 10px; padding: 30px; text-align: center; transition: transform 0.3s; }
+        .feature-card:hover { transform: translateY(-10px); }
+        .feature-icon { font-size: 40px; color: #3498db; margin-bottom: 20px; }
+        .locker-types { padding: 100px 0; background-color: white; }
+        .locker-container { display: flex; align-items: center; gap: 50px; flex-wrap: wrap; }
+        .locker-carousel { flex: 1; position: relative; height: 500px; overflow: hidden; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); background: #f8f9fa; }
+        .carousel-slides { display: flex; transition: transform 0.5s ease-in-out; height: 100%; }
+        .carousel-slide { min-width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+        .carousel-slide img { max-width: 70%; max-height: 50%; object-fit: contain; border-radius: 15px; }
+        .slide-content { text-align: center; color: #2c3e50; }
+        .slide-content h3 { font-size: 24px; margin-bottom: 10px; }
+        .carousel-arrow { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0,0,0,0.5); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; z-index: 10; font-size: 18px; }
+        .carousel-arrow.prev { left: 15px; }
+        .carousel-arrow.next { right: 15px; }
+        .carousel-nav { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+        .carousel-dot { width: 12px; height: 12px; border-radius: 50%; background-color: rgba(0,0,0,0.3); cursor: pointer; }
+        .carousel-dot.active { background-color: #3498db; }
+        .locker-description { margin-bottom: 40px; padding: 30px; border-radius: 10px; background-color: #f8f9fa; display: none; }
+        .locker-description.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .locker-specs { display: flex; gap: 20px; margin-top: 20px; flex-wrap: wrap; }
+        .spec-item { flex: 1; text-align: center; padding: 15px; background-color: white; border-radius: 8px; }
+        .spec-value { font-size: 20px; font-weight: 700; color: #3498db; }
+        .map-page, .profile-page, .history-page, .about-page { display: none; padding: 100px 0; background-color: white; }
+        .back-btn { background-color: #7f8c8d; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-bottom: 30px; }
+        #real-map { height: 450px; border-radius: 10px; margin: 20px 0; border: 1px solid #ddd; z-index: 1; }
+        .locations-grid { display: flex; gap: 20px; margin-top: 20px; flex-wrap: wrap; }
+        .location-card { flex: 1; background: #f8f9fa; border-radius: 10px; padding: 20px; cursor: pointer; border-left: 4px solid #3498db; transition: 0.3s; }
+        .location-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .profile-header { display: flex; align-items: center; gap: 30px; margin-bottom: 30px; }
+        .profile-avatar { width: 100px; height: 100px; border-radius: 50%; background-color: #3498db; color: white; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: bold; }
+        .history-item { padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px; margin-bottom: 15px; }
+        .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; margin-top: 40px; }
+        .team-member { text-align: center; }
+        .team-avatar { width: 120px; height: 120px; border-radius: 50%; background-color: #3498db; color: white; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: bold; margin: 0 auto 20px; }
+        footer { background-color: #2c3e50; color: white; padding: 60px 0 30px; }
+        .footer-content { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; margin-bottom: 40px; }
+        .copyright { text-align: center; padding-top: 30px; border-top: 1px solid #34495e; color: #bdc3c7; }
+        .occupied-badge { background-color: #e74c3c; color: white; padding: 2px 10px; border-radius: 20px; font-size: 12px; margin-left: 10px; display: inline-block; }
+        .available-badge { background-color: #27ae60; color: white; padding: 2px 10px; border-radius: 20px; font-size: 12px; margin-left: 10px; display: inline-block; }
+        @media (max-width: 768px) { .header-content { flex-direction: column; } .hero-text h1 { font-size: 32px; } .locker-container { flex-direction: column; } .locker-carousel { width: 100%; height: 400px; } #real-map { height: 350px; } }
+    </style>
+</head>
+<body>
+    <!-- ВАШ ПОЛНЫЙ HTML КОД СТРАНИЦЫ (ОСТАВЬТЕ КАК ЕСТЬ, Я НЕ ТРОГАЮ) -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <img src="logo.png" alt="CampusLock Logo" onerror="this.style.display='none'">
+                    Campus<span>Lock</span>
+                </div>
+                <nav>
+                    <ul>
+                        <li><a href="#" id="map-link">🗺 Карта ячеек</a></li>
+                        <li><a href="#" id="about-link">О нас</a></li>
+                        <li><a href="#" id="home-link">Главная</a></li>
+                        <li id="auth-section">
+                            <button class="login-btn" id="login-btn">Log in</button>
+                            <div class="user-menu" id="user-menu" style="display: none;">
+                                <div class="user-avatar" id="user-avatar">U</div>
+                                <div class="dropdown-menu" id="dropdown-menu">
+                                    <a href="#" id="profile-link">Профиль</a>
+                                    <a href="#" id="history-link">История бронирований</a>
+                                    <a href="#" id="logout-link">Выйти</a>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div id="main-content">
+        <section class="hero">
+            <div class="container">
+                <div class="hero-text">
+                    <h1>CampusLock - автоматические камеры для платного хранения вещей</h1>
+                    <p>📍 Уфа, ул. Карла Маркса, 12 (корпуса 2, 6, 7) — безопасное и удобное хранение 24/7.</p>
+                    <button class="book-btn" id="open-booking-modal">Забронировать</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="locker-types">
+            <div class="container">
+                <div class="section-title"><h2>Типы ячеек хранения</h2><p>Выберите подходящий размер ячейки для ваших нужд</p></div>
+                <div class="locker-container">
+                    <div class="locker-info">
+                        <div class="locker-description active" id="desc-small">
+                            <h3>📱 Маленькие ячейки <span id="small-status" class="available-badge">Свободно</span></h3>
+                            <p>Ячейки маленького размера. Удобны для хранения ноутбуков, техники и мелочи.</p>
+                            <div class="locker-specs">
+                                <div class="spec-item"><div class="spec-value">30×40×50 см</div><div class="spec-label">Размер</div></div>
+                                <div class="spec-item"><div class="spec-value">5 кг</div><div class="spec-label">Макс. вес</div></div>
+                                <div class="spec-item"><div class="spec-value">50 ₽/час</div><div class="spec-label">Стоимость</div></div>
+                            </div>
+                        </div>
+                        <div class="locker-description" id="desc-medium">
+                            <h3>🎒 Средние ячейки <span id="medium-status" class="available-badge">Свободно</span></h3>
+                            <p>Ячейки среднего размера. Подходят для хранения рюкзаков, сумок и спортивной формы.</p>
+                            <div class="locker-specs">
+                                <div class="spec-item"><div class="spec-value">40×50×60 см</div><div class="spec-label">Размер</div></div>
+                                <div class="spec-item"><div class="spec-value">10 кг</div><div class="spec-label">Макс. вес</div></div>
+                                <div class="spec-item"><div class="spec-value">80 ₽/час</div><div class="spec-label">Стоимость</div></div>
+                            </div>
+                        </div>
+                        <div class="locker-description" id="desc-large">
+                            <h3>🧳 Большие ячейки <span id="large-status" class="available-badge">Свободно</span></h3>
+                            <p>Ячейки большого размера. Вмещают крупные сумки и объемные предметы.</p>
+                            <div class="locker-specs">
+                                <div class="spec-item"><div class="spec-value">60×80×100 см</div><div class="spec-label">Размер</div></div>
+                                <div class="spec-item"><div class="spec-value">25 кг</div><div class="spec-label">Макс. вес</div></div>
+                                <div class="spec-item"><div class="spec-value">120 ₽/час</div><div class="spec-label">Стоимость</div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="locker-carousel">
+                        <div class="carousel-slides">
+                            <div class="carousel-slide">
+                                <img src="small.png" alt="Маленькие ячейки" onerror="this.src='https://placehold.co/400x300?text=Small+Locker'">
+                                <div class="slide-content"><h3>📱 Маленькие ячейки</h3><p>Для ноутбуков и ценных вещей</p></div>
+                            </div>
+                            <div class="carousel-slide">
+                                <img src="sred.png" alt="Средние ячейки" onerror="this.src='https://placehold.co/400x300?text=Medium+Locker'">
+                                <div class="slide-content"><h3>🎒 Средние ячейки</h3><p>Для рюкзаков и сумок</p></div>
+                            </div>
+                            <div class="carousel-slide">
+                                <img src="big.png" alt="Большие ячейки" onerror="this.src='https://placehold.co/400x300?text=Large+Locker'">
+                                <div class="slide-content"><h3>🧳 Большие ячейки</h3><p>Для крупных вещей</p></div>
+                            </div>
+                        </div>
+                        <button class="carousel-arrow prev">❮</button>
+                        <button class="carousel-arrow next">❯</button>
+                        <div class="carousel-nav"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="container">
+                <div class="section-title"><h2>Почему выбирают CampusLock?</h2><p>Наши автоматические камеры хранения предлагают современное решение</p></div>
+                <div class="features-grid">
+                    <div class="feature-card"><div class="feature-icon">🔒</div><h3>Безопасность</h3><p>Надежная защита ваших вещей</p></div>
+                    <div class="feature-card"><div class="feature-icon">⏰</div><h3>Доступ 24/7</h3><p>В любое время суток</p></div>
+                    <div class="feature-card"><div class="feature-icon">💰</div><h3>Доступные цены</h3><p>Гибкая система тарифов</p></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="about-page" id="about-page">
+        <div class="container">
+            <button class="back-btn" id="back-from-about">← Назад</button>
+            <div class="section-title"><h1>О компании CampusLock</h1></div>
+            <div class="team-grid">
+                <div class="team-member"><div class="team-avatar">КХ</div><h4>Хасанова Карина</h4><p>Основатель и CEO</p></div>
+                <div class="team-member"><div class="team-avatar">ФК</div><h4>Кутлугужина Фируза</h4><p>Технический директор</p></div>
+                <div class="team-member"><div class="team-avatar">СК</div><h4>Кутушев Салават</h4><p>Главный разработчик</p></div>
+                <div class="team-member"><div class="team-avatar">ТХ</div><h4>Харасов Тимур</h4><p>Менеджер</p></div>
+                <div class="team-member"><div class="team-avatar">ТТ</div><h4>Тимирбаев Тимур</h4><p>Админ</p></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="map-page" id="map-page">
+        <div class="container">
+            <button class="back-btn" id="back-from-map">← Назад</button>
+            <h1>🗺 Карта ячеек CampusLock в Уфе</h1>
+            <p>📍 ул. Карла Маркса, 12 — корпус 2, корпус 6, корпус 7</p>
+            <div id="real-map"></div>
+            <div class="locations-grid" id="locations-grid"></div>
+        </div>
+    </section>
+
+    <section class="profile-page" id="profile-page">
+        <div class="container">
+            <button class="back-btn" id="back-from-profile">← Назад</button>
+            <div class="profile-header">
+                <div class="profile-avatar" id="profile-avatar">U</div>
+                <div><h1 id="profile-name">Пользователь</h1><p id="profile-email">email@example.com</p><p id="profile-student-id">Студенческий: 000000</p></div>
+            </div>
+            <h2>Редактировать профиль</h2>
+            <form id="profile-form">
+                <div class="form-group"><label>Имя</label><input type="text" id="edit-name"></div>
+                <div class="form-group"><label>Email</label><input type="email" id="edit-email"></div>
+                <button type="submit" class="submit-btn">Сохранить изменения</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="history-page" id="history-page">
+        <div class="container">
+            <button class="back-btn" id="back-from-history">← Назад</button>
+            <h1>История бронирований</h1>
+            <div id="history-list"></div>
+        </div>
+    </section>
+
+    <!-- Auth Modal -->
+    <div class="modal" id="auth-modal">
+        <div class="modal-content">
+            <span class="close-modal" id="close-auth-modal">&times;</span>
+            <div class="form-tabs"><div class="form-tab active" id="login-tab">Вход</div><div class="form-tab" id="register-tab">Регистрация</div></div>
+            <div class="tab-content active" id="login-content">
+                <form id="login-form">
+                    <div class="form-group"><label>Номер студенческого</label><input type="text" id="login-student-id" maxlength="6"></div>
+                    <div class="form-group"><label>Пароль</label><input type="password" id="login-password"></div>
+                    <button type="submit" class="submit-btn">Войти</button>
+                </form>
+            </div>
+            <div class="tab-content" id="register-content">
+                <form id="register-form">
+                    <div class="form-group"><label>Имя</label><input type="text" id="register-name"></div>
+                    <div class="form-group"><label>Email</label><input type="email" id="register-email"></div>
+                    <div class="form-group"><label>Номер студенческого (6 цифр)</label><input type="text" id="register-student-id" maxlength="6"></div>
+                    <div class="form-group"><label>Пароль</label><input type="password" id="register-password"></div>
+                    <button type="submit" class="submit-btn">Зарегистрироваться</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div class="modal" id="booking-modal">
+        <div class="modal-content">
+            <span class="close-modal" id="close-booking-modal">&times;</span>
+            <h2>📅 Бронирование ячейки</h2>
+            <form id="booking-form">
+                <div class="form-group"><label>Тип ячейки</label><select id="locker-type"><option value="small">Маленькая (50 ₽/час)</option><option value="medium">Средняя (80 ₽/час)</option><option value="large">Большая (120 ₽/час)</option></select></div>
+                <div class="form-group"><label>Дата (сегодня или завтра)</label><input type="text" id="booking-date" readonly></div>
+                <div class="form-group"><label>Время начала</label><select id="start-time"></select></div>
+                <div class="form-group"><label>Продолжительность (шаг 30 мин)</label><select id="duration-minutes"></select></div>
+                <div class="form-group"><label>Местоположение (Уфа)</label><select id="location"><option value="Корпус 6">Корпус 6 (Карла Маркса,12)</option><option value="Корпус 2">Корпус 2 (Карла Маркса,12)</option><option value="Корпус 7">Корпус 7 (Карла Маркса,12)</option></select></div>
+                <div class="price-preview" id="price-preview">💰 Стоимость: 0 ₽</div>
+                <button type="submit" class="submit-btn">Забронировать</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column"><h3>CampusLock</h3><ul><li><a href="#" id="about-footer-link">О компании</a></li></ul></div>
+                <div class="footer-column"><h3>Контакты</h3><ul><li>Email: info@campuslock.ru</li><li>Телефон: +79378585689</li><li>Адрес: г. Уфа, ул. Карла Маркса, 12</li></ul></div>
+            </div>
+            <div class="copyright"><p>© 2025 CampusLock. Все права защищены.</p></div>
+        </div>
+    </footer>
+
+    <script>
+        // ========== НАСТРОЙКА ПОДКЛЮЧЕНИЯ К GOOGLE SHEETS ==========
+        // ⚠️⚠️⚠️ ВСТАВЬТЕ ВАШУ ССЫЛКУ ИЗ APPS SCRIPT В ЭТУ СТРОКУ! ⚠️⚠️⚠️
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyrAtIzRD8HfxTKGPb8iFsKTRFYJeED6zC-B-QRy5WrdsSCH7-gnGXjM-VNgCjDNcYMdQ/exec';
+        
+        let currentUser = null;
+        let allBookings = [];
+        let map = null;
+        const prices = { small: 50, medium: 80, large: 120 };
+        
+        // ========== ФУНКЦИИ ДЛЯ РАБОТЫ С GOOGLE SHEETS (БЕЗ КЛЮЧА) ==========
+        async function apiCall(action, params = {}) {
+            // ВАЖНО: key НЕ отправляем!
+            const urlParams = new URLSearchParams({ action, ...params });
+            try {
+                const response = await fetch(`${SCRIPT_URL}?${urlParams}`);
+                const text = await response.text();
+                console.log('Ответ от сервера:', text);
+                try {
+                    return JSON.parse(text);
+                } catch(e) {
+                    return { error: 'Неверный ответ от сервера', raw: text };
+                }
+            } catch(e) {
+                console.error('Ошибка:', e);
+                return { error: 'Ошибка соединения с сервером' };
+            }
+        }
+        
+        // Тест соединения
+        async function testConnection() {
+            const result = await apiCall('test');
+            console.log('Тест соединения:', result);
+            if (result.success) {
+                console.log('✅ API работает!');
+            } else {
+                console.error('❌ Ошибка API:', result.error);
+            }
+        }
+        
+        async function loadAllBookings() {
+            const result = await apiCall('getAllBookings');
+            if (result && result.success) {
+                allBookings = result.bookings || [];
+                updateLockerStatuses();
+            } else {
+                console.warn('Ошибка загрузки бронирований:', result?.error);
+                allBookings = [];
+            }
+            return allBookings;
+        }
+        
+        async function getUserBookings(userId) {
+            const result = await apiCall('getUserBookings', { user_id: userId });
+            return result && result.success ? result.bookings : [];
+        }
+        
+        async function addBooking(booking) {
+            const result = await apiCall('addBooking', booking);
+            if (result && result.success) await loadAllBookings();
+            return result;
+        }
+        
+        async function registerUser(name, email, studentId, password) {
+            return await apiCall('register', { name, email, student_id: studentId, password });
+        }
+        
+        async function loginUser(studentId, password) {
+            return await apiCall('login', { student_id: studentId, password });
+        }
+        
+        async function updateProfile(userId, name, email) {
+            return await apiCall('updateProfile', { user_id: userId, name, email });
+        }
+        
+        // Сохранение сессии в localStorage
+        function saveSession(user) {
+            localStorage.setItem('currentUser', JSON.stringify(user));
+        }
+        
+        function loadSession() {
+            const saved = localStorage.getItem('currentUser');
+            return saved ? JSON.parse(saved) : null;
+        }
+        
+        function clearSession() {
+            localStorage.removeItem('currentUser');
+        }
+        
+        // ========== ПРОВЕРКА ЗАНЯТОСТИ ==========
+        function isLockerOccupied(lockerType, date, startTime, durationMinutes) {
+            const start = new Date(`${date}T${startTime}`);
+            const end = new Date(start.getTime() + durationMinutes * 60000);
+            for (const b of allBookings) {
+                if (b.locker_type !== lockerType) continue;
+                const bStart = new Date(`${b.booking_date}T${b.start_time}`);
+                const bEnd = new Date(bStart.getTime() + b.duration_minutes * 60000);
+                if (start < bEnd && end > bStart) return true;
+            }
+            return false;
+        }
+        
+        function updateLockerStatuses() {
+            const today = new Date().toISOString().slice(0,10);
+            const now = new Date();
+            ['small', 'medium', 'large'].forEach(type => {
+                let occupied = false;
+                for (const b of allBookings) {
+                    if (b.locker_type !== type) continue;
+                    const end = new Date(new Date(`${b.booking_date}T${b.start_time}`).getTime() + b.duration_minutes * 60000);
+                    if (b.booking_date >= today && now < end) { occupied = true; break; }
+                }
+                const span = document.getElementById(`${type}-status`);
+                if (span) {
+                    span.textContent = occupied ? '🔴 Занято' : '🟢 Свободно';
+                    span.className = occupied ? 'occupied-badge' : 'available-badge';
+                }
+            });
+        }
+        
+        // ========== ИНИЦИАЛИЗАЦИЯ КАРТЫ ==========
+        function initMap() {
+            if (map) map.remove();
+            const center = [54.7355, 55.9580];
+            map = L.map('real-map').setView(center, 16);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            const locations = [
+                { name: "Корпус 2", coords: [54.7348, 55.9572], addr: "ул. Карла Маркса, 12, корп. 2", type: "Ячейки M/L" },
+                { name: "Корпус 6", coords: [54.7355, 55.9580], addr: "ул. Карла Маркса, 12, корп. 6", type: "Ячейки S/M" },
+                { name: "Корпус 7", coords: [54.7362, 55.9595], addr: "ул. Карла Маркса, 12, корп. 7", type: "Все типы" }
+            ];
+            
+            locations.forEach(loc => {
+                const marker = L.marker(loc.coords).addTo(map);
+                marker.bindPopup(`
+                    <b>${loc.name}</b><br>${loc.addr}<br>📦 ${loc.type}<br>
+                    <button onclick="document.getElementById('open-booking-modal').click(); document.getElementById('location').value='${loc.name}'" style="margin-top:8px; background:#3498db; color:white; border:none; border-radius:20px; padding:5px 12px; cursor:pointer;">Забронировать</button>
+                `);
+            });
+            
+            const grid = document.getElementById('locations-grid');
+            if (grid) {
+                grid.innerHTML = locations.map(loc => `
+                    <div class="location-card" data-lat="${loc.coords[0]}" data-lng="${loc.coords[1]}">
+                        <h3>📍 ${loc.name}</h3>
+                        <p>${loc.addr}</p>
+                        <span style="background:#e2e8f0; padding:4px 12px; border-radius:20px; font-size:12px;">${loc.type}</span>
+                    </div>
+                `).join('');
+                
+                document.querySelectorAll('.location-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        const lat = parseFloat(card.dataset.lat);
+                        const lng = parseFloat(card.dataset.lng);
+                        if (map) map.setView([lat, lng], 18);
+                    });
+                });
+            }
+        }
+        
+        // ========== UI ФУНКЦИИ ==========
+        function generateTimeOptions() {
+            const times = [];
+            for (let h = 0; h < 24; h++) for (let m = 0; m < 60; m += 30) times.push(`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`);
+            return times;
+        }
+        
+        function generateDurationOptions() {
+            const durations = [];
+            for (let min = 30; min <= 720; min += 30) {
+                const h = Math.floor(min / 60), m = min % 60;
+                durations.push({ value: min, label: h > 0 ? (m > 0 ? `${h} ч ${m} мин` : `${h} ч`) : `${m} мин` });
+            }
+            return durations;
+        }
+        
+        function populateSelects() {
+            const startSelect = document.getElementById('start-time');
+            const times = generateTimeOptions();
+            startSelect.innerHTML = times.map(t => `<option value="${t}">${t}</option>`).join('');
+            const now = new Date();
+            let h = now.getHours(), m = now.getMinutes();
+            let r = Math.ceil(m / 30) * 30;
+            if (r === 60) { r = 0; h++; }
+            const defaultTime = `${h.toString().padStart(2,'0')}:${r.toString().padStart(2,'0')}`;
+            if (times.includes(defaultTime)) startSelect.value = defaultTime;
+            
+            const durSelect = document.getElementById('duration-minutes');
+            const durations = generateDurationOptions();
+            durSelect.innerHTML = durations.map(d => `<option value="${d.value}">${d.label}</option>`).join('');
+            durSelect.value = 60;
+        }
+        
+        function calculatePrice() {
+            const type = document.getElementById('locker-type').value;
+            const duration = parseInt(document.getElementById('duration-minutes').value || 0);
+            return Math.ceil((prices[type] || 50) * (duration / 60));
+        }
+        
+        function updatePricePreview() {
+            document.getElementById('price-preview').innerHTML = `💰 Стоимость: ${calculatePrice()} ₽`;
+        }
+        
+        function initDatePicker() {
+            const today = new Date(), tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            flatpickr("#booking-date", { locale: "ru", dateFormat: "d.m.Y", minDate: today, maxDate: tomorrow, defaultDate: today });
+        }
+        
+        function updateUI() {
+            if (currentUser) {
+                document.getElementById('login-btn').style.display = 'none';
+                document.getElementById('user-menu').style.display = 'flex';
+                document.getElementById('user-avatar').textContent = currentUser.name.charAt(0).toUpperCase();
+                document.getElementById('profile-name').textContent = currentUser.name;
+                document.getElementById('profile-email').textContent = currentUser.email;
+                document.getElementById('profile-student-id').textContent = `Студенческий: ${currentUser.student_id}`;
+                document.getElementById('edit-name').value = currentUser.name;
+                document.getElementById('edit-email').value = currentUser.email;
+            } else {
+                document.getElementById('login-btn').style.display = 'block';
+                document.getElementById('user-menu').style.display = 'none';
+            }
+        }
+        
+        function showPage(page) {
+            document.getElementById('main-content').style.display = 'none';
+            document.getElementById('map-page').style.display = 'none';
+            document.getElementById('profile-page').style.display = 'none';
+            document.getElementById('history-page').style.display = 'none';
+            document.getElementById('about-page').style.display = 'none';
+            if (page === 'main') document.getElementById('main-content').style.display = 'block';
+            if (page === 'map') { document.getElementById('map-page').style.display = 'block'; setTimeout(() => initMap(), 100); }
+            if (page === 'profile') document.getElementById('profile-page').style.display = 'block';
+            if (page === 'history') { document.getElementById('history-page').style.display = 'block'; loadHistory(); }
+            if (page === 'about') document.getElementById('about-page').style.display = 'block';
+        }
+        
+        async function loadHistory() {
+            if (!currentUser) return;
+            const bookings = await getUserBookings(currentUser.id);
+            const container = document.getElementById('history-list');
+            if (!bookings.length) { container.innerHTML = '<p>У вас пока нет бронирований</p>'; return; }
+            container.innerHTML = bookings.map(b => `
+                <div class="history-item">
+                    <h3>Ячейка: ${b.locker_type_name || b.locker_type}</h3>
+                    <p>📅 ${b.booking_date} | ⏰ ${b.start_time} | ⏱ ${b.duration_text}</p>
+                    <p>📍 ${b.location}</p>
+                    <p>💰 ${b.price} ₽</p>
+                </div>
+            `).join('');
+        }
+        
+        function initCarousel() {
+            const slides = document.querySelector('.carousel-slides');
+            if (!slides) return;
+            const count = document.querySelectorAll('.carousel-slide').length;
+            const dotsContainer = document.querySelector('.carousel-nav');
+            const prevBtn = document.querySelector('.carousel-arrow.prev');
+            const nextBtn = document.querySelector('.carousel-arrow.next');
+            const descriptions = document.querySelectorAll('.locker-description');
+            let current = 0;
+            
+            for (let i = 0; i < count; i++) {
+                const dot = document.createElement('span');
+                dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+                dot.onclick = () => goToSlide(i);
+                dotsContainer.appendChild(dot);
+            }
+            const dots = document.querySelectorAll('.carousel-dot');
+            
+            function goToSlide(index) {
+                current = index;
+                slides.style.transform = `translateX(-${current * 100}%)`;
+                dots.forEach((d, i) => d.classList.toggle('active', i === current));
+                descriptions.forEach((d, i) => d.classList.toggle('active', i === current));
+            }
+            
+            prevBtn.onclick = () => goToSlide((current - 1 + count) % count);
+            nextBtn.onclick = () => goToSlide((current + 1) % count);
+            goToSlide(0);
+            
+            let auto = setInterval(() => goToSlide((current + 1) % count), 5000);
+            document.querySelector('.locker-carousel').onmouseenter = () => clearInterval(auto);
+            document.querySelector('.locker-carousel').onmouseleave = () => auto = setInterval(() => goToSlide((current + 1) % count), 5000);
+        }
+        
+        // ========== ЗАПУСК ==========
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('Сайт загружен, тестируем соединение...');
+            await testConnection();
+            await loadAllBookings();
+            
+            const savedUser = loadSession();
+            if (savedUser) { currentUser = savedUser; updateUI(); }
+            
+            initCarousel();
+            populateSelects();
+            initDatePicker();
+            updatePricePreview();
+            
+            document.getElementById('map-link').onclick = (e) => { e.preventDefault(); showPage('map'); };
+            document.getElementById('about-link').onclick = (e) => { e.preventDefault(); showPage('about'); };
+            document.getElementById('home-link').onclick = (e) => { e.preventDefault(); showPage('main'); };
+            document.getElementById('about-footer-link').onclick = (e) => { e.preventDefault(); showPage('about'); };
+            document.getElementById('profile-link').onclick = (e) => { e.preventDefault(); if(!currentUser){ alert('Войдите'); return; } showPage('profile'); };
+            document.getElementById('history-link').onclick = (e) => { e.preventDefault(); if(!currentUser){ alert('Войдите'); return; } showPage('history'); };
+            document.getElementById('back-from-map').onclick = () => showPage('main');
+            document.getElementById('back-from-profile').onclick = () => showPage('main');
+            document.getElementById('back-from-history').onclick = () => showPage('main');
+            document.getElementById('back-from-about').onclick = () => showPage('main');
+            
+            document.getElementById('login-btn').onclick = () => document.getElementById('auth-modal').style.display = 'flex';
+            document.getElementById('open-booking-modal').onclick = () => {
+                if (!currentUser) { alert('Для бронирования необходимо войти в систему'); document.getElementById('auth-modal').style.display = 'flex'; }
+                else { document.getElementById('booking-modal').style.display = 'flex'; updatePricePreview(); }
+            };
+            document.getElementById('close-auth-modal').onclick = () => document.getElementById('auth-modal').style.display = 'none';
+            document.getElementById('close-booking-modal').onclick = () => document.getElementById('booking-modal').style.display = 'none';
+            window.onclick = (e) => { if(e.target.classList && e.target.classList.contains('modal')) e.target.style.display = 'none'; };
+            
+            document.getElementById('register-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('register-name').value;
+                const email = document.getElementById('register-email').value;
+                const studentId = document.getElementById('register-student-id').value;
+                const password = document.getElementById('register-password').value;
+                if (!/^\d{6}$/.test(studentId)) { alert('Номер студенческого должен состоять из 6 цифр'); return; }
+                const result = await registerUser(name, email, studentId, password);
+                if (result && result.success) {
+                    currentUser = result.user;
+                    saveSession(currentUser);
+                    updateUI();
+                    document.getElementById('auth-modal').style.display = 'none';
+                    alert('Регистрация успешна!');
+                    await loadAllBookings();
+                } else {
+                    alert(result?.error || 'Ошибка регистрации');
+                }
+            };
+            
+            document.getElementById('login-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const studentId = document.getElementById('login-student-id').value;
+                const password = document.getElementById('login-password').value;
+                const result = await loginUser(studentId, password);
+                if (result && result.success) {
+                    currentUser = result.user;
+                    saveSession(currentUser);
+                    updateUI();
+                    document.getElementById('auth-modal').style.display = 'none';
+                    alert('Успешный вход!');
+                    await loadAllBookings();
+                } else {
+                    alert(result?.error || 'Неверный номер студенческого или пароль');
+                }
+            };
+            
+            document.getElementById('profile-form').onsubmit = async (e) => {
+                e.preventDefault();
+                if (!currentUser) return;
+                const result = await updateProfile(currentUser.id, document.getElementById('edit-name').value, document.getElementById('edit-email').value);
+                if (result && result.success) {
+                    currentUser.name = result.user.name;
+                    currentUser.email = result.user.email;
+                    saveSession(currentUser);
+                    updateUI();
+                    alert('Профиль обновлён');
+                } else {
+                    alert('Ошибка обновления');
+                }
+            };
+            
+            document.getElementById('logout-link').onclick = (e) => {
+                e.preventDefault();
+                currentUser = null;
+                clearSession();
+                updateUI();
+                alert('Вы вышли из системы');
+                showPage('main');
+            };
+            
+            document.getElementById('booking-form').onsubmit = async (e) => {
+                e.preventDefault();
+                if (!currentUser) { alert('Войдите'); return; }
+                
+                const lockerType = document.getElementById('locker-type').value;
+                const lockerTypeName = document.getElementById('locker-type').options[document.getElementById('locker-type').selectedIndex]?.text;
+                const dateRaw = document.getElementById('booking-date').value;
+                const startTime = document.getElementById('start-time').value;
+                const durationMinutes = parseInt(document.getElementById('duration-minutes').value);
+                const location = document.getElementById('location').value;
+                const price = calculatePrice();
+                const dateParts = dateRaw.split('.');
+                const formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+                const durationText = document.getElementById('duration-minutes').options[document.getElementById('duration-minutes').selectedIndex]?.text;
+                
+                if (isLockerOccupied(lockerType, formattedDate, startTime, durationMinutes)) {
+                    alert('❌ Извините, эта ячейка уже забронирована на выбранное время!');
+                    return;
+                }
+                
+                const result = await addBooking({
+                    user_id: currentUser.id, user_name: currentUser.name,
+                    locker_type: lockerType, locker_type_name: lockerTypeName,
+                    booking_date: formattedDate, start_time: startTime,
+                    duration_minutes: durationMinutes, duration_text: durationText,
+                    location: location, price: price
+                });
+                
+                if (result && result.success) {
+                    alert(`✅ Ячейка успешно забронирована!\n${lockerTypeName}\n📅 ${dateRaw} ${startTime}\n⏱ ${durationText}\n💰 ${price} ₽`);
+                    document.getElementById('booking-modal').style.display = 'none';
+                    document.getElementById('booking-form').reset();
+                    populateSelects();
+                    updatePricePreview();
+                } else {
+                    alert('Ошибка бронирования');
+                }
+            };
+            
+            document.getElementById('locker-type').onchange = updatePricePreview;
+            document.getElementById('duration-minutes').onchange = updatePricePreview;
+            
+            document.getElementById('user-avatar').onclick = (e) => { e.stopPropagation(); document.getElementById('dropdown-menu').classList.toggle('active'); };
+            document.onclick = () => document.getElementById('dropdown-menu').classList.remove('active');
+            
+            document.getElementById('login-tab').onclick = () => {
+                document.getElementById('login-tab').classList.add('active');
+                document.getElementById('register-tab').classList.remove('active');
+                document.getElementById('login-content').classList.add('active');
+                document.getElementById('register-content').classList.remove('active');
+            };
+            document.getElementById('register-tab').onclick = () => {
+                document.getElementById('register-tab').classList.add('active');
+                document.getElementById('login-tab').classList.remove('active');
+                document.getElementById('register-content').classList.add('active');
+                document.getElementById('login-content').classList.remove('active');
+            };
+        });
+    </script>
+</body>
+</html>

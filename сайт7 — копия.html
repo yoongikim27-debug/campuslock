@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест регистрации</title>
+</head>
+<body>
+    <h1>Тест регистрации CampusLock</h1>
+    <input type="text" id="name" placeholder="Имя"><br>
+    <input type="email" id="email" placeholder="Email"><br>
+    <input type="text" id="student_id" placeholder="Студенческий (6 цифр)"><br>
+    <input type="password" id="password" placeholder="Пароль"><br>
+    <button onclick="testRegister()">Зарегистрироваться</button>
+    <div id="result"></div>
+
+    <script>
+        // ⚠️ ВСТАВЬТЕ ВАШ URL ИЗ APPS SCRIPT ⚠️
+        const SCRIPT_URL = 'https://script.google.com/macros/s/ВАШ_URL/exec';
+        
+        async function testRegister() {
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const student_id = document.getElementById('student_id').value;
+            const password = document.getElementById('password').value;
+            
+            const url = `${SCRIPT_URL}?action=register&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&student_id=${student_id}&password=${encodeURIComponent(password)}`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                document.getElementById('result').innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                console.log('Ответ:', data);
+            } catch(e) {
+                document.getElementById('result').innerHTML = 'Ошибка: ' + e.message;
+            }
+        }
+    </script>
+</body>
+</html>

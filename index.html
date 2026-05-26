@@ -968,7 +968,6 @@ footer {
                 </div>
                 <div class="about-grid">
                     <div class="about-card"><h3>Наша миссия</h3><p>Сделать хранение вещей максимально удобным, безопасным и доступным для студентов и посетителей учебных заведений.</p></div>
-                    <div class="about-card"><h3>Наше видение</h3><p>Стать лидером в области автоматических систем хранения для образовательных учреждений по всей России.</p></div>
                     <div class="about-card"><h3>Наши ценности</h3><p>Инновации, безопасность, доступность и забота о клиентах - это основа нашей работы.</p></div>
                 </div>
                 <div class="team-section">
@@ -1058,7 +1057,7 @@ footer {
                 <div class="form-group"><label>Тип ячейки</label><select id="locker-type"><option value="small">Маленькая (50 ₽/час)</option><option value="medium">Средняя (80 ₽/час)</option><option value="large">Большая (120 ₽/час)</option></select></div>
                 <div class="form-group"><label>Дата (сегодня или завтра)</label><input type="text" id="booking-date" readonly></div>
                 <div class="form-group"><label>Время начала</label><select id="start-time"></select></div>
-                <div class="form-group"><label>Продолжительность (шаг 30 мин)</label><select id="duration-minutes"></select></div>
+                <div class="form-group"><label>Продолжительность</label><select id="duration-minutes"></select></div>
                 <div class="form-group"><label>Местоположение (Уфа)</label><select id="location"><option value="Корпус 6">Корпус 6 (Карла Маркса,12)</option><option value="Корпус 2">Корпус 2 (Карла Маркса,12)</option><option value="Корпус 7">Корпус 7 (Карла Маркса,12)</option></select></div>
                 <div class="price-preview" id="price-preview">💰 Стоимость: 0 ₽</div>
                 <button type="submit" class="submit-btn">Забронировать</button>
@@ -1081,7 +1080,7 @@ footer {
     <script>
         // ========== НАСТРОЙКА ==========
         // ⚠️ ВСТАВЬТЕ ВАШ URL ИЗ APPS SCRIPT ⚠️
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxoza9Q5rWwoeqAeD_FSFoM53xIJt7RqvsGTlJIJvKarVVQKTC0Bq999F7eVqqm4UJm/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzwBAoFIgU1c2CQSjJqufkPIWsQ4HkxlErfD5Bsg3nnaPuVa0BlXp6Sh9Sg8baRykK6/exec';
         
         let currentUser = null;
         let allBookings = [];
@@ -1181,9 +1180,9 @@ footer {
             }).addTo(map);
             
             const locations = [
-                { name: "Корпус 2", coords: [54.7348, 55.9572], addr: "ул. Карла Маркса, 12, корп. 2", type: "Ячейки M/L" },
-                { name: "Корпус 6", coords: [54.7355, 55.9580], addr: "ул. Карла Маркса, 12, корп. 6", type: "Ячейки S/M" },
-                { name: "Корпус 7", coords: [54.7362, 55.9595], addr: "ул. Карла Маркса, 12, корп. 7", type: "Все типы" }
+                { name: "Корпус 2", coords: [54.724141, 55.941345], addr: "ул. Карла Маркса, 12, корп. 2", type: "Ячейки M/L" },
+                { name: "Корпус 6", coords: [54.724864, 55.940922], addr: "ул. Карла Маркса, 12, корп. 6", type: "Ячейки S/M" },
+                { name: "Корпус 7", coords: [54.725914, 55.943321], addr: "ул. Карла Маркса, 12, корп. 7", type: "Все типы" }
             ];
             
             locations.forEach(loc => {

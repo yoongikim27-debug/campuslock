@@ -319,14 +319,13 @@
 
     <script>
         // ========== НАСТРОЙКА ==========
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzw0a-JfaHT_BbXYRTxQyKV3TrLPEqURWh_NjOnyvoK-YtwS_MrOsos4eFW45gN6GJCZQ/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxsepZIZf_0EoL2fi79Cu2JkB9xNf-klgNSTeS1VVoU4Tk85KkIzT4z14ECI1s6f_ZHaA/exec';
         
         let currentUser = null;
         let allBookings = [];
         let map = null;
         const prices = { small: 50, medium: 80, large: 120 };
         
-        // Список доступных ячеек по корпусам и типам
         const lockerIds = {
             "small": ["A1", "A2", "A3", "A4", "A5", "A6"],
             "medium": ["B1", "B2", "B3", "B4"],
@@ -356,6 +355,7 @@
             const result = await apiCall('getAllBookings');
             if (result && result.success) {
                 allBookings = result.bookings || [];
+                console.log('Загружено бронирований:', allBookings.length);
                 updateLockerStatuses();
             }
             return allBookings;
@@ -383,50 +383,26 @@
         function clearSession() { localStorage.removeItem('currentUser'); }
         
         // Проверка занятости конкретной ячейки
-       // Проверка занятости конкретной ячейки (исправленная)
-function isSpecificLockerOccupied(building, lockerType, lockerId, date, startTime, durationMinutes) {
-    // Создаем объекты дат для проверяемого интервала
-    const start = new Date(`${date}T${startTime}`);
-    const end = new Date(start.getTime() + durationMinutes * 60000);
-    
-    console.log('=== ПРОВЕРКА ЯЧЕЙКИ ===');
-    console.log('Параметры:', { building, lockerType, lockerId, date, startTime, durationMinutes });
-    console.log('Интервал:', { start, end });
-    console.log('Всего броней в allBookings:', allBookings.length);
-    
-    // Перебираем все существующие бронирования
-    for (let i = 0; i < allBookings.length; i++) {
-        const b = allBookings[i];
-        
-        // Сравниваем все ключевые поля
-        const buildingMatch = (b.building === building);
-        const lockerTypeMatch = (b.locker_type === lockerType);
-        const lockerIdMatch = (b.locker_id === lockerId);
-        
-        console.log(`Бронь ${i}: здание=${b.building}, тип=${b.locker_type}, ячейка=${b.locker_id}, дата=${b.booking_date}, время=${b.start_time}`);
-        
-        if (!buildingMatch || !lockerTypeMatch || !lockerIdMatch) continue;
-        
-        // Создаем объекты дат для существующего бронирования
-        const bStart = new Date(`${b.booking_date}T${b.start_time}`);
-        const bEnd = new Date(bStart.getTime() + b.duration_minutes * 60000);
-        
-        console.log(`Сравнение с бронированием #${i}:`);
-        console.log(`  Существующее: ${bStart} - ${bEnd}`);
-        console.log(`  Проверяемое:  ${start} - ${end}`);
-        
-        // Проверка пересечения интервалов
-        if (start < bEnd && end > bStart) {
-            console.log(`  ❌ КОНФЛИКТ! Ячейка ${lockerId} занята!`);
-            return true; // ЗАНЯТО!
+        function isSpecificLockerOccupied(building, lockerType, lockerId, date, startTime, durationMinutes) {
+            const start = new Date(`${date}T${startTime}`);
+            const end = new Date(start.getTime() + durationMinutes * 60000);
+            
+            for (const b of allBookings) {
+                if (b.building !== building) continue;
+                if (b.locker_type !== lockerType) continue;
+                if (b.locker_id !== lockerId) continue;
+                
+                const bStart = new Date(`${b.booking_date}T${b.start_time}`);
+                const bEnd = new Date(bStart.getTime() + b.duration_minutes * 60000);
+                
+                if (start < bEnd && end > bStart) {
+                    console.log(`❌ Ячейка ${lockerId} занята!`);
+                    return true;
+                }
+            }
+            return false;
         }
-    }
-    
-    console.log(`✅ Ячейка ${lockerId} СВОБОДНА!`);
-    return false;
-}
         
-        // Получить список свободных ячеек
         function getAvailableLockers(building, lockerType, date, startTime, durationMinutes) {
             const allLockers = lockerIds[lockerType] || [];
             const available = [];
@@ -522,6 +498,7 @@ function isSpecificLockerOccupied(building, lockerType, lockerId, date, startTim
                 lockerIdGroup.style.display = 'block';
                 lockerIdSelect.innerHTML = `<option value="">Выберите номер ячейки</option>` +
                     lockerIds[lockerType].map(id => `<option value="${id}">Ячейка ${id}</option>`).join('');
+                lockerIdSelect.disabled = false;
             } else {
                 lockerIdGroup.style.display = 'none';
             }
@@ -649,6 +626,7 @@ function isSpecificLockerOccupied(building, lockerType, lockerId, date, startTim
             initDatePicker();
             updatePricePreview();
             
+            // Навигация
             document.getElementById('home-link').onclick = (e) => { e.preventDefault(); showPage('main'); };
             document.getElementById('map-link').onclick = (e) => { e.preventDefault(); showPage('map'); };
             document.getElementById('about-link').onclick = (e) => { e.preventDefault(); showPage('about'); };
@@ -660,6 +638,7 @@ function isSpecificLockerOccupied(building, lockerType, lockerId, date, startTim
             document.getElementById('back-from-history').onclick = () => showPage('main');
             document.getElementById('back-from-about').onclick = () => showPage('main');
             
+            // Модалки
             document.getElementById('login-btn').onclick = () => document.getElementById('auth-modal').style.display = 'flex';
             document.getElementById('open-booking-modal').onclick = () => {
                 if (!currentUser) { alert('Для бронирования необходимо войти в систему'); document.getElementById('auth-modal').style.display = 'flex'; }
@@ -669,6 +648,7 @@ function isSpecificLockerOccupied(building, lockerType, lockerId, date, startTim
             document.getElementById('close-booking-modal').onclick = () => document.getElementById('booking-modal').style.display = 'none';
             window.onclick = (e) => { if(e.target.classList && e.target.classList.contains('modal')) e.target.style.display = 'none'; };
             
+            // Обработчики изменения полей
             document.getElementById('locker-type').onchange = () => {
                 updateLockerIdOptions();
                 updatePricePreview();
@@ -682,6 +662,7 @@ function isSpecificLockerOccupied(building, lockerType, lockerId, date, startTim
             };
             document.getElementById('booking-date').onchange = () => updateAvailableLockers();
             
+            // Регистрация
             document.getElementById('register-form').onsubmit = async (e) => {
                 e.preventDefault();
                 const name = document.getElementById('register-name').value;
@@ -701,6 +682,7 @@ function isSpecificLockerOccupied(building, lockerType, lockerId, date, startTim
                 }
             };
             
+            // Логин
             document.getElementById('login-form').onsubmit = async (e) => {
                 e.preventDefault();
                 const studentId = document.getElementById('login-student-id').value;
@@ -717,6 +699,7 @@ function isSpecificLockerOccupied(building, lockerType, lockerId, date, startTim
                 }
             };
             
+            // Обновление профиля
             document.getElementById('profile-form').onsubmit = async (e) => {
                 e.preventDefault();
                 if (!currentUser) return;
@@ -732,6 +715,7 @@ function isSpecificLockerOccupied(building, lockerType, lockerId, date, startTim
                 }
             };
             
+            // Выход
             document.getElementById('logout-link').onclick = (e) => {
                 e.preventDefault();
                 currentUser = null;
@@ -741,6 +725,7 @@ function isSpecificLockerOccupied(building, lockerType, lockerId, date, startTim
                 showPage('main');
             };
             
+            // Бронирование
             document.getElementById('booking-form').onsubmit = async (e) => {
                 e.preventDefault();
                 if (!currentUser) { alert('Войдите'); return; }
@@ -762,7 +747,7 @@ function isSpecificLockerOccupied(building, lockerType, lockerId, date, startTim
                     return;
                 }
                 
-                // Проверка занятости конкретной ячейки
+                // Проверка занятости
                 if (isSpecificLockerOccupied(building, lockerType, lockerId, formattedDate, startTime, durationMinutes)) {
                     alert(`❌ Ячейка ${lockerId} уже забронирована на выбранное время! Пожалуйста, выберите другую ячейку или другое время.`);
                     await updateAvailableLockers();
@@ -793,9 +778,11 @@ function isSpecificLockerOccupied(building, lockerType, lockerId, date, startTim
                 }
             };
             
+            // Выпадающее меню
             document.getElementById('user-avatar').onclick = (e) => { e.stopPropagation(); document.getElementById('dropdown-menu').classList.toggle('active'); };
             document.onclick = () => document.getElementById('dropdown-menu').classList.remove('active');
             
+            // Табы
             document.getElementById('login-tab').onclick = () => {
                 document.getElementById('login-tab').classList.add('active');
                 document.getElementById('register-tab').classList.remove('active');

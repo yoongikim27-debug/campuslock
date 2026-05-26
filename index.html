@@ -383,24 +383,48 @@
         function clearSession() { localStorage.removeItem('currentUser'); }
         
         // Проверка занятости конкретной ячейки
-        function isSpecificLockerOccupied(building, lockerType, lockerId, date, startTime, durationMinutes) {
-            const start = new Date(`${date}T${startTime}`);
-            const end = new Date(start.getTime() + durationMinutes * 60000);
-            
-            for (const b of allBookings) {
-                if (b.building !== building) continue;
-                if (b.locker_type !== lockerType) continue;
-                if (b.locker_id !== lockerId) continue;
-                
-                const bStart = new Date(`${b.booking_date}T${b.start_time}`);
-                const bEnd = new Date(bStart.getTime() + b.duration_minutes * 60000);
-                
-                if (start < bEnd && end > bStart) {
-                    return true; // ЗАНЯТО!
-                }
-            }
-            return false; // СВОБОДНО!
+       // Проверка занятости конкретной ячейки (исправленная)
+function isSpecificLockerOccupied(building, lockerType, lockerId, date, startTime, durationMinutes) {
+    // Создаем объекты дат для проверяемого интервала
+    const start = new Date(`${date}T${startTime}`);
+    const end = new Date(start.getTime() + durationMinutes * 60000);
+    
+    console.log('=== ПРОВЕРКА ЯЧЕЙКИ ===');
+    console.log('Параметры:', { building, lockerType, lockerId, date, startTime, durationMinutes });
+    console.log('Интервал:', { start, end });
+    console.log('Всего броней в allBookings:', allBookings.length);
+    
+    // Перебираем все существующие бронирования
+    for (let i = 0; i < allBookings.length; i++) {
+        const b = allBookings[i];
+        
+        // Сравниваем все ключевые поля
+        const buildingMatch = (b.building === building);
+        const lockerTypeMatch = (b.locker_type === lockerType);
+        const lockerIdMatch = (b.locker_id === lockerId);
+        
+        console.log(`Бронь ${i}: здание=${b.building}, тип=${b.locker_type}, ячейка=${b.locker_id}, дата=${b.booking_date}, время=${b.start_time}`);
+        
+        if (!buildingMatch || !lockerTypeMatch || !lockerIdMatch) continue;
+        
+        // Создаем объекты дат для существующего бронирования
+        const bStart = new Date(`${b.booking_date}T${b.start_time}`);
+        const bEnd = new Date(bStart.getTime() + b.duration_minutes * 60000);
+        
+        console.log(`Сравнение с бронированием #${i}:`);
+        console.log(`  Существующее: ${bStart} - ${bEnd}`);
+        console.log(`  Проверяемое:  ${start} - ${end}`);
+        
+        // Проверка пересечения интервалов
+        if (start < bEnd && end > bStart) {
+            console.log(`  ❌ КОНФЛИКТ! Ячейка ${lockerId} занята!`);
+            return true; // ЗАНЯТО!
         }
+    }
+    
+    console.log(`✅ Ячейка ${lockerId} СВОБОДНА!`);
+    return false;
+}
         
         // Получить список свободных ячеек
         function getAvailableLockers(building, lockerType, date, startTime, durationMinutes) {
